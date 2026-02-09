@@ -40,7 +40,7 @@ export default withZephyr()({
   module: {
     rules: [
       {
-        test: /\.svg$/,
+        test: /\.(png|jpe?g|gif|webp|svg)$/,
         type: "asset",
       },
       {
