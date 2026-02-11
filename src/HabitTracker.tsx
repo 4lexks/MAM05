@@ -1,7 +1,6 @@
-import React from "react";
-import {useState, ReactNode, useEffect} from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import "./index.css";
-import { createPortal } from 'react-dom';
 
 type ModalProps = {
   isOpen: boolean;
@@ -9,31 +8,35 @@ type ModalProps = {
   children: ReactNode;
 };
 
-function Portal({ isOpen, onClose, children }:ModalProps) {
+function Portal({ isOpen, onClose, children }: ModalProps) {
   if (!isOpen) return null;
 
   return createPortal(
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <div style={{
-        background: 'white',
-        padding: '20px',
-        borderRadius: '8px'
-      }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          padding: "20px",
+          borderRadius: "8px",
+        }}
+      >
         {children}
         <button onClick={onClose}>Close</button>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -46,20 +49,21 @@ const hasuraGraphqlUrl = "https://elegant-kitten-75.hasura.app/v1/graphql";
 
 async function graphqlFetch<TData>(
   query: string,
-  variables?: Record<string, any>
+  variables?: Record<string, any>,
 ): Promise<TData> {
   const res = await fetch(hasuraGraphqlUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-hasura-admin-secret": "YE1f93reDnXFdRV31eAsxnu4i825TEWR9YdathnOtx63q480VtCLhab7gCfYNogh"
+      "x-hasura-admin-secret":
+        "YE1f93reDnXFdRV31eAsxnu4i825TEWR9YdathnOtx63q480VtCLhab7gCfYNogh",
     },
-    body: JSON.stringify({query, variables}),
+    body: JSON.stringify({ query, variables }),
   });
 
   const json = await res.json();
 
-  if(json.errors) {
+  if (json.errors) {
     console.error("Graphql errors:", json.errors);
     throw new Error(json.errors[0].message);
   }
@@ -95,21 +99,23 @@ const HabitTracker = () => {
     }
   `;
 
-  {/*Load habits */}
+  {
+    /*Load habits */
+  }
   const loadHabits = async () => {
     setLoading(true);
     setError(null);
-    try{
-      const data = await graphqlFetch<{habit_table:Habit[]}>(GET_HABITS);
+    try {
+      const data = await graphqlFetch<{ habit_table: Habit[] }>(GET_HABITS);
       console.log("Graphql habits data:", data);
       setHabits(Array.isArray(data.habit_table) ? data.habit_table : []);
-  } catch (e:any) {
-    setError(e.message ?? "Failed to load habits");
-  } finally {
-    setLoading(false);
-  }
-  }; 
-  
+    } catch (e: any) {
+      setError(e.message ?? "Failed to load habits");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadHabits();
   }, []);
@@ -122,32 +128,37 @@ const HabitTracker = () => {
     const goal = parseInt(goalInput, 10);
     if (Number.isNaN(goal)) {
       alert("Goal must be a number");
-    return;
-  }
+      return;
+    }
     try {
-      await graphqlFetch<{insert_habit_table: Habit}>(INSERT_HABIT, {habit_title, goal});
+      await graphqlFetch<{ insert_habit_table: Habit }>(INSERT_HABIT, {
+        habit_title,
+        goal,
+      });
       await loadHabits();
     } catch (e: any) {
       alert(e.message ?? "Failed to create habit");
     }
   };
 
-  return ( 
+  return (
     <div className="flex gap-4 items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
       <h1 className="text-2xl font-bold mb-4">Habit Tracker</h1>
-      <p className="text-gray-600">This is where you can track manage your habits.</p>
+      <p className="text-gray-600">
+        This is where you can track manage your habits.
+      </p>
 
       <p>
-      <button onClick={() => setIsOpen(true)}>Open Modal</button>
-      <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
-        <h2>Modal Content</h2>
-        <p>This content is rendered outside the App component!</p>
-      </Portal>
+        <button onClick={() => setIsOpen(true)}>Open Modal</button>
+        <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
+          <h2>Modal Content</h2>
+          <p>This content is rendered outside the App component!</p>
+        </Portal>
       </p>
-      
+
       <button
-          onClick={createHabit}
-          className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
+        onClick={createHabit}
+        className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
       >
         Add Habit
       </button>
@@ -165,13 +176,8 @@ const HabitTracker = () => {
           <li className="text-gray-500">No habits yet.</li>
         )}
       </ul>
-
     </div>
-
-    
-
   );
-}
+};
 
 export default HabitTracker;
-
