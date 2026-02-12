@@ -52,7 +52,7 @@ export const MedicineTracker = () => {
   `;
 
   const INSERT_MEDICATION = `
-    mutation InsertMedication($medication_name: String!, dose_amount: Int!, dose_unit: String!, amount_per_day: Int!, time_to_take: String[]!) {
+    mutation InsertMedication($medication_name: String!, dose_amount: Int!, dose_unit: String!, amount_per_day: Int!, time_to_take: Time[]!) {
       insert_medication_table(object: {
         medication_name: $medication_name,
         dose_amount: $dose_amount,
@@ -67,6 +67,14 @@ export const MedicineTracker = () => {
         time_to_take
       }
     }
+  `;
+
+  const DELETE_MEDICATION = `
+  mutation DeleteHabit($medication_name: String!) {
+    delete_medication_table_by_pk(medication_name: $medication_name) {
+      medication_name
+    }
+  }
   `;
 
   {
@@ -115,8 +123,8 @@ export const MedicineTracker = () => {
 
     const dose_amount = parseInt(dose_amount_string, 10);
     const amount_per_day = parseInt(amount_per_day_string, 10);
-    const time_to_take = DateTime.fromFormat(time_to_take_string, "HH:mm:ss");
-
+    const time_to_take_date = DateTime.fromFormat(time_to_take_string, "HH:mm:ss");
+    const time_to_take = `[${time_to_take_date}]`;
     try {
       await graphqlFetch<{ insert_medication_table: Medicine }>(
         INSERT_MEDICATION,
@@ -134,40 +142,61 @@ export const MedicineTracker = () => {
     }
   };
 
-  return (
-    <div className="flex gap-4 items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
-      <h1 className="text-2xl font-bold mb-4">Medication Tracker</h1>
-      <p className="text-gray-600">
-        This is where you can track your medications and manage your
-        prescriptions.
-      </p>
+  const deleteMedication = async (medication_name: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await graphqlFetch
+      <{ delete_medication_table_by_pk: {medication_name: string} | null;}>(DELETE_MEDICATION, {medication_name});
+      await loadMedications();
+    } catch (e: any) {
+      setError(e.message ?? "Failed to delete habit");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      <button
-        onClick={createMedication}
-        className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
-      >
-        Add Medication
-      </button>
-      {loading && <p>Loading medications...</p>}
-      {error && <p className="text-red-500">Error: {error}</p>}
-      {/* LIST OF HABITS FROM DB */}
-      <ul className="list-disc pl-5 space-y-1">
-        {medications.map((medication) => (
-          <li key={medication.medication_name}>
-            <span className="font-semibold">{medication.medication_name}</span>{" "}
-            <span className="font-semibold">{medication.dose_amount}</span>{" "}
-            <span className="font-semibold">{medication.dose_unit}</span>{" "}
-            <span className="font-semibold">{medication.amount_per_day}</span>{" "}
-            <span className="font-semibold">
-              {medication.time_to_take}
-            </span>{" "}
-          </li>
-        ))}
-        {!loading && medications.length === 0 && !error && (
-          <li className="text-gray-500">No habits yet.</li>
-        )}
-      </ul>
-    </div>
+  return (
+    <><div className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          <h1 className="text-2xl font-bold mb-4">Medication Tracker</h1>
+          <p className="text-gray-600">
+          This is where you can track your medications and manage your
+          prescriptions.
+          </p>
+
+          <button
+            onClick={createMedication}
+            className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
+          >
+          Add Medication
+          </button>
+        </div>
+
+        <div className="flex flex-col mt-2 w-full">
+        {loading && <p>Loading medications...</p>}
+        {error && <p className="text-red-500">Error: {error}</p>}
+        <ul className="list-disc pl-5 space-y-4">
+          {medications.map((medication) => (
+            <div key={medication.medication_name} className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
+              <div className="flex items-center w-full">
+                <p className="flex-1 flex flex-wrap text-xl font-semibold">{medication.medication_name}{", "}{medication.dose_amount}{" "}{medication.dose_unit}</p>
+                <button onClick={() => deleteMedication(medication.medication_name)} className="ml-auto px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">Remove Medication</button>
+              </div> 
+              <p className="text-lg">Today's Schedule</p>
+
+              <div className="flex flex-row gap-4 items-left p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
+                <p className="font-semibold">{medication.time_to_take}</p>
+                <input id="default-checkbox self-end" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/>
+              </div>
+            </div>
+          ))}
+          {!loading && medications.length === 0 && !error && (
+            <li className="text-gray-500">No habits yet.</li>
+          )}
+        </ul>
+      </div>
+    </div></>
   );
 };
 

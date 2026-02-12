@@ -88,13 +88,21 @@ const HabitTracker = () => {
 
   const INSERT_HABIT = `
     mutation InsertHabit($habit_title: String!, $goal: Int!) {
-      insert_habit_table(object: {
+      insert_habit_table_one(object: {
         habit_title: $habit_title,
         goal: $goal
       }) {
         id
         habit_title
         goal
+      }
+    }
+  `;
+
+  const DELETE_HABIT = `
+    mutation DeleteHabit($id: Int!) {
+      delete_habit_table_by_pk(id: $id) {
+        id
       }
     }
   `;
@@ -131,7 +139,7 @@ const HabitTracker = () => {
       return;
     }
     try {
-      await graphqlFetch<{ insert_habit_table: Habit }>(INSERT_HABIT, {
+      await graphqlFetch<{ insert_habit_table_one: Habit }>(INSERT_HABIT, {
         habit_title,
         goal,
       });
@@ -141,42 +149,88 @@ const HabitTracker = () => {
     }
   };
 
+  const deleteHabit = async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await graphqlFetch
+      <{ delete_habit_table_by_pk: {id: number} | null;}>(DELETE_HABIT, {id});
+      await loadHabits();
+    } catch (e: any) {
+      setError(e.message ?? "Failed to delete habit");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex gap-4 items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
-      <h1 className="text-2xl font-bold mb-4">Habit Tracker</h1>
+    <><div className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
+        <div className="flex justify-between gap-4 items-center">
+          <h1 className="text-2xl font-bold">Habit Tracker</h1>
+          <div className="flex gap-2">
+            <button onClick={() => setIsOpen(true)}>Open Modal</button>
+            <button
+              onClick={createHabit}
+              className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600 items-right">
+              Add Habit
+            </button>
+          </div>
+        </div>
       <p className="text-gray-600">
         This is where you can track manage your habits.
       </p>
+      <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
+        <h2>Modal Content</h2>
+        <p>This content is rendered outside the App component!</p>
+      </Portal>
+    
+    <div className="flex flex-col mt-2 w-full">
+        {loading && <p>Loading habits...</p>}
+        {error && <p className="text-red-500">Error: {error}</p>}
 
-      <p>
-        <button onClick={() => setIsOpen(true)}>Open Modal</button>
-        <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
-          <h2>Modal Content</h2>
-          <p>This content is rendered outside the App component!</p>
-        </Portal>
-      </p>
+        <ul className="list-disc pl-5 space-y-4">
+          {habits.map((habit) => (
+            <div key={habit.id} className="flex flex-col items-center gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
+              <div className="flex items-center w-full">
+                <p className="flex-1 flex flex-wrap text-xl font-semibold">{habit.habit_title}</p>
+                <button onClick={() => deleteHabit(habit.id)} className="ml-auto px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">Remove Habit</button>
+              </div>
+              <p className="flex-2 flex flex-wrap self-left items-left ml-2 text-gray-600">Goal: {habit.goal} times per week</p>
 
-      <button
-        onClick={createHabit}
-        className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
-      >
-        Add Habit
-      </button>
-      {loading && <p>Loading habits...</p>}
-      {error && <p className="text-red-500">Error: {error}</p>}
-      {/* LIST OF HABITS FROM DB */}
-      <ul className="list-disc pl-5 space-y-1">
-        {habits.map((habit) => (
-          <li key={habit.id}>
-            <span className="font-semibold">{habit.habit_title}</span>{" "}
-            <span className="text-gray-600">– {habit.goal}</span>
-          </li>
-        ))}
-        {!loading && habits.length === 0 && !error && (
-          <li className="text-gray-500">No habits yet.</li>
-        )}
-      </ul>
-    </div>
+              <div className="table w-2xl mt-2">
+                <div className="table-header-group">
+                  <div className="table-row">
+                    <div className="table-cell text-center">Monday</div>
+                    <div className="table-cell text-center">Tuesday</div>
+                    <div className="table-cell text-center">Wednesday</div>
+                    <div className="table-cell text-center">Thursday</div>
+                    <div className="table-cell text-center">Friday</div>
+                    <div className="table-cell text-center">Saturday</div>
+                    <div className="table-cell text-center">Sunday</div>
+                  </div>
+                </div>
+                <div className="table-row-group">
+                  <div className="table-row">
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                  </div>
+                </div>
+              </div>
+          </div>
+          ))}
+          {!loading && habits.length === 0 && !error && (
+            <li className="text-gray-500">No habits yet.</li>
+          )}
+        </ul>
+      </div>
+      </div></>
+
+    
   );
 };
 

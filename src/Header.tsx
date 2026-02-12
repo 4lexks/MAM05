@@ -1,6 +1,6 @@
 import { useState } from "react";
 import HabitTracker from "./HabitTracker";
-
+import HeartRateOverview from "./HeartRateOverview";
 import iconImage from "./icons/beat.png";
 import logoImage from "./icons/logo-transparent.png";
 import "./index.css";
@@ -35,7 +35,7 @@ function NavigationMenu({
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
         }`}
       >
-        Medication
+        Medication Tracker
       </button>
 
       <button
@@ -46,18 +46,18 @@ function NavigationMenu({
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
         }`}
       >
-        Heart Rate
+        Heart Rate Overview
       </button>
     </div>
   );
 }
 
-const Header = () => {
+export const Header = () => {
   const [activeApp, setActiveApp] = useState<ActiveApp>("habitTracker");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-100 to-blue-100">
-      <div className="flex justify-between items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mt-6 mx-4 md:mx-6 lg:mx-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-100 to-blue-100 p-4">
+      <div className="flex justify-between items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8">
         {/* Logo on the left */}
         <div className="flex gap-4 items">
           <div className="w-16 h-16 rounded-lg overflow-hidden">
@@ -97,9 +97,7 @@ const Header = () => {
       <main className="p-5 mx-4 md:mx-6 lg:mx-8 mt-4">
         {activeApp === "habitTracker" && <HabitTracker />}
         {activeApp === "medicineTracker" && <MedicineTracker />}
-        {activeApp === "heartRateMonitor" && (
-          <div>Heart rate monitor UI goes here…</div>
-        )}
+        {activeApp === "heartRateMonitor" && <HeartRateOverview />}
       </main>
     </div>
   );
