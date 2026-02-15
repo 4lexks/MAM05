@@ -35,6 +35,42 @@ async function graphqlFetch<TData>(
   return json.data;
 }
 
+const PRODUCTNAAM_REGEX= /^(.+?)\s+(\d+)\s*(mg|g|mcg|µg|ml|IU)\b,?\s*(.+)$/;
+
+function parseMedicationName(productnaam: string) {
+  const match = productnaam.match(PRODUCTNAAM_REGEX);
+  if (!match) return null;
+  return{
+    name: match[1].trim(),
+    doseAmount: parseInt(match[2], 10),
+    doseUnit: match[3],
+    form: match[4].trim()
+  }
+}
+
+function getTimeLabel(time: string) {
+  let hour: number;
+  const simpleMatch = time.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/);
+  if (simpleMatch) {
+    hour = parseInt(simpleMatch[1], 10);
+  } else {
+    return"failed to parse time";
+  }
+
+  if (hour >= 5 && hour < 12) return "Morning";
+  if (hour >= 12 && hour < 17) return "Afternoon";
+  if (hour >= 17 && hour < 19) return "Evening";
+  return "Night";
+}
+
+function formatTime(timeStr: string): string {
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/);
+  if (!match) return timeStr; // Return original if format is unexpected
+  const hour = parseInt(match[1], 10);
+  const minute = match[2];
+  return `${hour}:${minute}`;
+}
+
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -78,13 +114,15 @@ export const MedicineTracker = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
   const [medNameInput, setMedNameInput] = useState("");
-  // const [doseAmountInput, setDoseAmountInput] = useState("");
-  // const [doseUnitInput, setDoseUnitInput] = useState("");
   const [amountPerDayInput, setAmountPerDayInput] = useState("");
+  const [timeInputs, setTimeInputs] = useState<string[]>([]);
   const [timeToTakeInput, setTimeToTakeInput] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [selectedMedInfo, setSelectedMedInfo] = useState<{ farmaceutischevorm: string ; toedienningsweg: string} | null>(null);
+
+  const [extractDose, setExtractedDose] = useState<{doseAmount: number; doseUnit: string} | null>(null);
 
   const GET_MEDICATIONS = `
     query GetMedications {
@@ -99,8 +137,13 @@ export const MedicineTracker = () => {
   `;
 
   const INSERT_MEDICATION = `
-    mutation InsertMedication($medication_name: String!, dose_amount: Int!, dose_unit: String!, amount_per_day: Int!, time_to_take: Time[]!) {
-      insert_medication_table(object: {
+    mutation InsertMedication(
+      $medication_name: String!, 
+      $dose_amount: Int!, 
+      $dose_unit: String!, 
+      $amount_per_day: Int!, 
+      $time_to_take: [time!]) {
+      insert_medication_table_one(object: {
         medication_name: $medication_name,
         dose_amount: $dose_amount,
         dose_unit: $dose_unit,
@@ -126,7 +169,7 @@ export const MedicineTracker = () => {
 
   const SEARCH_MEDICATION_DB = `
     query SearchMedication($search: String!) {
-      medicine_db(where: {productnaam: { _like: $search }}
+      medicine_db(where: {productnaam: { _ilike: $search }}
       limit: 5) {
         productnaam
         registratienummer
@@ -146,12 +189,12 @@ export const MedicineTracker = () => {
       const data = await graphqlFetch<{ medication_table: Medicine[] }>(
         GET_MEDICATIONS,
       );
-      console.log("Graphql habits data:", data);
+      console.log("Graphql medications data:", data);
       setMedications(
         Array.isArray(data.medication_table) ? data.medication_table : [],
       );
     } catch (e: any) {
-      setError(e.message ?? "Failed to load habits");
+      setError(e.message ?? "Failed to load medications");
     } finally {
       setLoading(false);
     }
@@ -178,77 +221,63 @@ export const MedicineTracker = () => {
     }
   }
 
+  const handleAmountPerDayChange = (value: string) => {
+    setAmountPerDayInput(value);
+    const amount = parseInt(value, 10);
+    if (!isNaN(amount) && amount > 0 && amount <= 10) {
+       //create empty time slots
+      const timeSlots =  Array.from({ length: amount }, (_, i) => 
+        timeInputs[i] || "",);
+      setTimeInputs(timeSlots);
+    } else {
+      setTimeInputs([]);
+    }
+  };
+
+  // update timpe input
+  const handleTimeChange = (index: number, value: string) => {
+    const updated = [...timeInputs];
+    updated[index] = value;
+    setTimeInputs(updated);
+  }
+
   const createMedication = async () => {
-    if (!medNameInput|| !amountPerDayInput || !timeToTakeInput) return;
-    //const dose_amount = parseInt(doseAmountInput, 5);
-    const amount_per_day = parseInt(amountPerDayInput, 5);
-    const time_to_take_date = DateTime.fromFormat(timeToTakeInput, "HH:mm");
-    const time_to_take = [`${time_to_take_date}`];
+    if (!medNameInput|| !amountPerDayInput || !extractDose) return;
+    const allTimeInputsFilled = timeInputs.length > 0 && timeInputs.every((t) => t !== "");
+    if (!allTimeInputsFilled) return;
+
+    const amount_per_day = parseInt(amountPerDayInput, 10);
+
+    //format time hh:mm:ss
+    const time_to_take = timeInputs.map((t) => {
+      return t.length === 5 ? `${t}:00` : t; // add seconds if not provided
+    });
 
     try {
       await graphqlFetch<{ insert_medication_table: Medicine }>(
         INSERT_MEDICATION,
         {
           medication_name: medNameInput,
-          //dose_amount,
-          //dose_unit: doseUnitInput, 
+          dose_amount: extractDose.doseAmount,
+          dose_unit: extractDose.doseUnit,
           amount_per_day,
-          time_to_take,
+          time_to_take: time_to_take, 
         },
       );
+      // reset all fields
       setMedNameInput("");
-      // setDoseAmountInput("");
-      // setDoseUnitInput(""); 
       setAmountPerDayInput("");
-      setTimeToTakeInput("");
+      setTimeInputs([]);
       setSuggestions([]);
       setSelectedMedInfo(null);
-      setIsOpen
+      setExtractedDose(null);
+      setIsOpen(false);
       await loadMedications();
     } catch (e: any) {
       alert(e.message ?? "Failed to create medication");
     }
   };
 
-  // const createMedication = async () => {
-  //   const medication_name = prompt("Enter medication name");
-  //   const dose_amount_string = prompt("Enter dose amount");
-  //   const dose_unit = prompt("Enter dose unit");
-  //   const amount_per_day_string = prompt(
-  //     "Enter the amount of times per day you take this medicine",
-  //   );
-  //   const time_to_take_string = prompt(
-  //     "Enter the time(s) of day you take your medication",
-  //   );
-  //   if (
-  //     !medication_name ||
-  //     !dose_amount_string ||
-  //     !dose_unit ||
-  //     !amount_per_day_string ||
-  //     !time_to_take_string
-  //   )
-  //     return;
-
-  //   const dose_amount = parseInt(dose_amount_string, 10);
-  //   const amount_per_day = parseInt(amount_per_day_string, 10);
-  //   const time_to_take_date = DateTime.fromFormat(time_to_take_string, "HH:mm:ss");
-  //   const time_to_take = `[${time_to_take_date}]`;
-  //   try {
-  //     await graphqlFetch<{ insert_medication_table: Medicine }>(
-  //       INSERT_MEDICATION,
-  //       {
-  //         medication_name,
-  //         dose_amount,
-  //         dose_unit,
-  //         amount_per_day,
-  //         time_to_take,
-  //       },
-  //     );
-  //     await loadMedications();
-  //   } catch (e: any) {
-  //     alert(e.message ?? "Failed to create habit");
-  //   }
-  // };
 
   const deleteMedication = async (medication_name: string) => {
     setLoading(true);
@@ -264,125 +293,216 @@ export const MedicineTracker = () => {
     }
   };
 
+  //handle selecting a suggestion from autocomplete
+  const handleSelectSuggestion = (med: any) => {
+    setMedNameInput(med.productnaam);
+    setSelectedMedInfo({
+      farmaceutischevorm: med.farmaceutischevorm,
+      toedienningsweg: med.toedienningsweg,
+    });
+    setSuggestions([]);
+
+    //use regex to extract dose from productnaam
+    const extracted = parseMedicationName(med.productnaam);
+    if (extracted) {
+      setExtractedDose({ doseAmount: extracted.doseAmount, doseUnit: extracted.doseUnit });
+    } else {
+      setExtractedDose(null);
+    }
+  };
+   
+
   return (
     <><div className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
         <div className="flex flex-wrap gap-4 items-center">
           <h1 className="text-2xl font-bold mb-4">Medication Tracker</h1>
-          <p className="text-gray-600">
-          This is where you can track your medications and manage your
-          prescriptions.
-          </p>
-
-          <button
-            onClick={() => setIsOpen(true)}
-            className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
-          >
-          Add Medication
-          </button>
+          <div className="flex- gap-2">
+            <button onClick={() => setIsOpen(true)} className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">
+              Add Medication
+            </button>
+          </div>
         </div>
-
+      <p className="text-gray-600">
+        This is where you can track your medications and manage your
+        prescriptions.
+      </p>
+          
         <div className="flex flex-col mt-2 w-full">
-        {loading && <p>Loading medications...</p>}
-        {error && <p className="text-red-500">Error: {error}</p>}
-        <ul className="list-disc pl-5 space-y-4">
-          {medications.map((medication) => (
-            <div key={medication.medication_name} className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
-              <div className="flex items-center w-full">
-                <p className="flex-1 flex flex-wrap text-xl font-semibold">{medication.medication_name}{", "}{medication.dose_amount}{" "}{medication.dose_unit}</p>
-                <button onClick={() => deleteMedication(medication.medication_name)} className="ml-auto px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">Remove Medication</button>
-              </div> 
-              <p className="text-lg">Today's Schedule</p>
+          {loading && <p>Loading medications...</p>}
+          {error && <p className="text-red-500">Error: {error}</p>}
 
-              <div className="flex flex-row gap-4 items-left p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
-                <p className="font-semibold">{medication.time_to_take}</p>
-                <input id="default-checkbox self-end" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/>
-              </div>
-            </div>
-          ))}
-          {!loading && medications.length === 0 && !error && (
-            <li className="text-gray-500">No habits yet.</li>
-          )}
-        </ul>
-      </div>
-      <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
-        <h2 className="text-xl font-bold mb-4">Add new medication</h2>
-        <div className="flex flex-col gap-3">
-          <input
-            type="text"
-            placeholder="Medication name"
-            value={medNameInput}
-            onChange={(e) => {
-              setMedNameInput(e.target.value)
-              searchMedication(e.target.value);
-              setSelectedMedInfo(null);
-            }}
-            className="border rounded px-3 py-2 w-full"
-          />
-          {suggestions.length > 0 && (
-            <ul className="absolute bg-white border rounded w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-lg">
-              {suggestions.map((med,i) => (
-                <li
-                  key = {i}
-                  onClick={() => {
-                    setMedNameInput(med.productnaam);
-                    setSelectedMedInfo({ 
-                      farmaceutischevorm: med.farmaceutischevorm, 
-                      toedienningsweg: med.toedienningsweg 
-                    });
-                    setSuggestions([]);
-                  }}
-                  className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                >
-                  <p className="font-medium">{med.productnaam}</p>
-                  <p className="text-sm text-gray-500">
-                    {med.farmaceutischevorm}, {med.toedienningsweg}
+          <div className="space-y-4">
+            {medications.map((medication) => (
+              <div 
+                key={medication.medication_name}
+                className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm"
+              >
+                {/*header: name and doasge + remove button */}
+                <div className=" flex items-center w-full">
+                  <p className="flex-1 text-xl font-semibold">
+                    {medication.medication_name}
                   </p>
-                </li>
-              ))}
-            </ul> 
-          )}
-        </div>
-          {selectedMedInfo && (
-            <div className="bg-blue-500 border border-blue-200 rounded px-3 py-2 text-sm">
-              <p><span className="font-semibold">Type:</span>{(selectedMedInfo.farmaceutischevorm)}</p>
-              <p><span className="font-semibold">Usage:</span>{(selectedMedInfo.toedienningsweg)}</p>
+                  <button
+                    onClick={() => deleteMedication(medication.medication_name)}
+                    className="px-3 py-1 bg-red-500 text-white rounded font-semibold hover:bg-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                {/* dosage info extracted by regexp*/}
+                <p className="text-sm text-gray-500">
+                  {medication.dose_amount} {medication.dose_unit} {medication.amount_per_day}x per day at
+                </p>
+                
+                {/* time of intake per row */}
+                <p className="text-lg font -medium"> Today&apos;s Schedule</p>
+                <div className="flex flex-col gap-2">
+                  {Array.isArray(medication.time_to_take) &&
+                    medication.time_to_take.map((time, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-4 p-3 bg-white border-2 border-blue-200 rounded-xl shadow-sm"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-500">
+                            {getTimeLabel(time)}
+                          </p>
+                          <p className="font-semibold">{formatTime(time)}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-2 focus:ring-blue-300"
+                        />
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+            {!loading && medications.length === 0 && !error && (
+              <p className="text-gray-500">No medications added yet. Click "Add Medication" to get started.</p>
+            )}
+          </div>
+      </div>
+
+      {/* ─── Add Medication Modal ─── */}
+        <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
+          <h2 className="text-xl font-bold mb-4">Add new medication</h2>
+          <div className="flex flex-col gap-3">
+            {/* Medicine name input with autocomplete */}
+            <label className="text-sm font-medium text-gray-700">
+              Medicine name
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Start typing a medicine name..."
+                value={medNameInput}
+                onChange={(e) => {
+                  setMedNameInput(e.target.value);
+                  searchMedication(e.target.value);
+                  setSelectedMedInfo(null);
+                  setExtractedDose(null);
+                }}
+                className="border rounded px-3 py-2 w-full"
+              />
+              {suggestions.length > 0 && (
+                <ul className="absolute bg-white border rounded w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-lg">
+                  {suggestions.map((med, i) => (
+                    <li
+                      key={i}
+                      onClick={() => handleSelectSuggestion(med)}
+                      className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                    >
+                      <p className="font-medium">{med.productnaam}</p>
+                      <p className="text-sm text-gray-500">
+                        {med.farmaceutischevorm} — {med.toedienningsweg}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          )}
-          {/* <input 
-            type="number"
-            placeholder="Dose amount"
-            value={doseAmountInput}
-            onChange={(e) => setDoseAmountInput(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            placeholder="Dose unit (e.g. mg)"
-            value={doseUnitInput}
-            onChange={(e) => setDoseUnitInput(e.target.value)}
-            className="border rounded px-3 py-2"
-          /> */}
-          <input
-            type="number"
-            placeholder="Times per day"
-            value={amountPerDayInput}
-            onChange={(e) => setAmountPerDayInput(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            placeholder="Time to take"
-            value={timeToTakeInput}
-            onChange={(e) => setTimeToTakeInput(e.target.value)}
-            className="border rounded px-3 py-2"
-          />
-          <button onClick={createMedication}
-            className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">
-            Add 
-          </button>
-      </Portal>
-    </div></>
+
+            {/* Show auto-extracted dose + medicine info */}
+            {selectedMedInfo && (
+              <div className="bg-blue-50 border border-blue-200 rounded px-3 py-2 text-sm">
+                <p>
+                  <span className="font-semibold">Type: </span>
+                  {selectedMedInfo.farmaceutischevorm}
+                </p>
+                <p>
+                  <span className="font-semibold">Usage: </span>
+                  {selectedMedInfo.toedienningsweg}
+                </p>
+                {extractDose && (
+                  <p>
+                    <span className="font-semibold">Dosage (auto): </span>
+                    {extractDose.doseAmount} {extractDose.doseUnit}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Times per day */}
+            <label className="text-sm font-medium text-gray-700">
+              How many times per day?
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              placeholder="e.g. 3"
+              value={amountPerDayInput}
+              onChange={(e) => handleAmountPerDayChange(e.target.value)}
+              className="border rounded px-3 py-2"
+            />
+
+            {/* Dynamic time inputs — one per dose */}
+            {timeInputs.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  What time for each dose?
+                </label>
+                {timeInputs.map((time, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500 w-16">
+                      Dose {i + 1}:
+                    </span>
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => handleTimeChange(i, e.target.value)}
+                      className="border rounded px-3 py-2 flex-1"
+                    />
+                    {time && (
+                      <span className="text-xs text-gray-400">
+                        {getTimeLabel(time)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={createMedication}
+              disabled={
+                !medNameInput ||
+                !extractDose ||
+                !amountPerDayInput ||
+                timeInputs.some((t) => t === "")
+              }
+              className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Add
+            </button>
+          </div>
+        </Portal>
+      </div>
+    </>
   );
 };
 
 export default MedicineTracker;
+
