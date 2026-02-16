@@ -18,7 +18,8 @@ function NavigationMenu({
     <div className="flex gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mt-6 mx-4 md:mx-6 lg:mx-8">
       <button
         onClick={() => setActiveApp("habitTracker")}
-        className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors ${
+        className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
+          hover:bg-gradient-to-r hover:from-[#ed7b84] hover:to-[#9055ff] hover:text-gray ${
           activeApp === "habitTracker"
             ? "bg-blue-500 text-white"
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -29,7 +30,8 @@ function NavigationMenu({
 
       <button
         onClick={() => setActiveApp("medicineTracker")}
-        className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors ${
+        className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
+          hover:bg-gradient-to-r hover:from-[#d6ff7f] hover:to-[#00b3cc] hover:text-gray ${
           activeApp === "medicineTracker"
             ? "bg-blue-500 text-white"
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -40,7 +42,8 @@ function NavigationMenu({
 
       <button
         onClick={() => setActiveApp("heartRateMonitor")}
-        className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors ${
+        className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
+          hover:bg-gradient-to-r hover:from-[#fa7cbb] hover:to-[#f14658] hover:text-gray ${
           activeApp === "heartRateMonitor"
             ? "bg-blue-500 text-white"
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
