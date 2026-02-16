@@ -213,11 +213,14 @@ const HabitTracker = () => {
         <ul className="list-disc pl-5 space-y-4">
           {habits.map((habit) => (
             <div key={habit.id} className="flex flex-col items-center gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
-              <div className="flex items-center w-full">
-                <p className="flex-1 flex flex-wrap text-xl font-semibold">{habit.habit_title}</p>
+              <div className="flex items-start w-full">
+                <div className="flex flex-col flex-1">
+                  <p className="text-xl font-semibold">{habit.habit_title}</p>
+                  <p className="mt-1 text-gray-600">Goal: {habit.goal} times per week</p>
+                </div>
                 <button onClick={() => deleteHabit(habit.id)} className="ml-auto px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">Remove Habit</button>
               </div>
-              <p className="flex-2 flex flex-wrap self-left items-left ml-2 text-gray-600">Goal: {habit.goal} times per week</p>
+              
 
               <div className="table w-2xl mt-2">
                 <div className="table-header-group">
