@@ -20,7 +20,7 @@ function NavigationMenu({
       <button
         onClick={() => setActiveApp("habitTracker")}
         className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
-          hover:bg-gradient-to-r hover:from-[#ed7b84] hover:to-[#9055ff] hover:text-gray ${
+          hover:bg-gradient-to-r hover:from-[#ed7b84] hover:to-[#9055ff] hover:text-white ${
           activeApp === "habitTracker"
             ? "bg-blue-500 text-white"
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -32,7 +32,7 @@ function NavigationMenu({
       <button
         onClick={() => setActiveApp("medicineTracker")}
         className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
-          hover:bg-gradient-to-r hover:from-[#d6ff7f] hover:to-[#00b3cc] hover:text-gray ${
+          hover:bg-gradient-to-r hover:from-[#d6ff7f] hover:to-[#00b3cc] hover:text-white ${
           activeApp === "medicineTracker"
             ? "bg-blue-500 text-white"
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -44,7 +44,7 @@ function NavigationMenu({
       <button
         onClick={() => setActiveApp("heartRateMonitor")}
         className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
-          hover:bg-gradient-to-r hover:from-[#fa7cbb] hover:to-[#f14658] hover:text-gray ${
+          hover:bg-gradient-to-r hover:from-[#fa7cbb] hover:to-[#f14658] hover:text-white ${
           activeApp === "heartRateMonitor"
             ? "bg-blue-500 text-white"
             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
