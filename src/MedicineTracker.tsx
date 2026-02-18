@@ -169,7 +169,7 @@ export const MedicineTracker = () => {
   `;
 
   const DELETE_MEDICATION = `
-  mutation DeleteHabit($medication_name: String!) {
+  mutation DeleteMedication($medication_name: String!) {
     delete_medication_table_by_pk(medication_name: $medication_name) {
       medication_name
     }
@@ -304,7 +304,7 @@ export const MedicineTracker = () => {
       <{ delete_medication_table_by_pk: {medication_name: string} | null;}>(DELETE_MEDICATION, {medication_name});
       await loadMedications();
     } catch (e: any) {
-      setError(e.message ?? "Failed to delete habit");
+      setError(e.message ?? "Failed to delete medication");
     } finally {
       setLoading(false);
     }
@@ -369,7 +369,7 @@ export const MedicineTracker = () => {
 
                 {/* dosage info extracted by regexp*/}
                 <p className="text-sm text-gray-500">
-                  {medication.dose_amount} {medication.dose_unit} {medication.amount_per_day}x per day at
+                  {medication.dose_amount} {medication.dose_unit} {medication.amount_per_day}x per day
                 </p>
                 
                 {/* time of intake per row */}
