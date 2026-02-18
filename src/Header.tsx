@@ -1,12 +1,13 @@
 import { useState } from "react";
-import HabitTracker from "./HabitTracker";
-import HeartRateOverview from "./HeartRateOverview";
 import iconImage from "./icons/beat.png";
 import logoImage from "./icons/logo-transparent.png";
-import "./index.css";
+import HabitTracker from "./HabitTracker";
+import HeartRateOverview from "./HeartRateOverview";
 import { MedicineTracker } from "./MedicineTracker";
+import { Footer } from "./Footer";
+import "./index.css";
 
-type ActiveApp = "habitTracker" | "medicineTracker" | "heartRateMonitor";
+export type ActiveApp = "habitTracker" | "medicineTracker" | "heartRateMonitor";
 function NavigationMenu({
   activeApp,
   setActiveApp,
@@ -102,6 +103,9 @@ export const Header = () => {
         {activeApp === "medicineTracker" && <MedicineTracker />}
         {activeApp === "heartRateMonitor" && <HeartRateOverview />}
       </main>
+
+      <Footer activeApp={activeApp}/>
+      
     </div>
   );
 };
