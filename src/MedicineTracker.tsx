@@ -118,7 +118,6 @@ export const MedicineTracker = () => {
   const [medNameInput, setMedNameInput] = useState("");
   const [amountPerDayInput, setAmountPerDayInput] = useState("");
   const [timeInputs, setTimeInputs] = useState<string[]>([]);
-  const [timeToTakeInput, setTimeToTakeInput] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [selectedMedInfo, setSelectedMedInfo] = useState<{ farmaceutischevorm: string ; toedienningsweg: string} | null>(null);
 
