@@ -78,6 +78,16 @@ const HabitTracker = () => {
   const [habitTitle, setHabitTitle] = useState("");
   const [goalInput, setGoalInput] = useState("");
 
+  // checkbox state (saved on localStorage)
+  const [checkboxState, setCheckboxState] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem("checkboxState");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("checkboxState", JSON.stringify(checkboxState));
+  }, [checkboxState]);
+
   const GET_HABITS = `
     query GetHabits {
       habit_table {
@@ -167,6 +177,11 @@ const HabitTracker = () => {
     }
   };
 
+  const handleCheckboxChange = (habitId: number, timeIndex: number) => {
+    const key = `${habitId}-${timeIndex}`;
+    setCheckboxState((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <><div className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
         <div className="flex justify-between gap-4 items-center">
@@ -218,31 +233,30 @@ const HabitTracker = () => {
                   <p className="text-xl font-semibold">{habit.habit_title}</p>
                   <p className="mt-1 text-gray-600">Goal: {habit.goal} times per week</p>
                 </div>
-                <button onClick={() => deleteHabit(habit.id)} className="ml-auto px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600">Remove Habit</button>
+                <button onClick={() => deleteHabit(habit.id)} className="px-3 py-1 bg-red-500 text-white rounded font-semibold hover:bg-red-600">Remove</button>
               </div>
               
 
               <div className="table w-2xl mt-2">
                 <div className="table-header-group">
                   <div className="table-row">
-                    <div className="table-cell text-center">Monday</div>
-                    <div className="table-cell text-center">Tuesday</div>
-                    <div className="table-cell text-center">Wednesday</div>
-                    <div className="table-cell text-center">Thursday</div>
-                    <div className="table-cell text-center">Friday</div>
-                    <div className="table-cell text-center">Saturday</div>
-                    <div className="table-cell text-center">Sunday</div>
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day,i) => (
+                      <div key={day} className="table-cell font-semibold text-center">{day}</div>
+                    ))}
                   </div>
                 </div>
                 <div className="table-row-group">
                   <div className="table-row">
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
-                    <div className="table-cell text-center"><input id="default-checkbox" type="checkbox" value="" className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"/></div>
+                    {[0,1,2,3,4,5,6].map((dayIndex) => (
+                      <div key={dayIndex} className="table-cell text-center">
+                        <input
+                          type="checkbox"
+                          checked={checkboxState[`${habit.id}-${dayIndex}`] || false}
+                          onChange={() => handleCheckboxChange(habit.id, dayIndex)}
+                          className="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

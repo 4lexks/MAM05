@@ -123,6 +123,16 @@ export const MedicineTracker = () => {
 
   const [extractDose, setExtractedDose] = useState<{doseAmount: number; doseUnit: string} | null>(null);
 
+  // checkbox state (saved on localStorage)
+  const [checkboxState, setCheckboxState] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem("checkboxState");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("checkboxState", JSON.stringify(checkboxState));
+  }, [checkboxState]);
+
   const GET_MEDICATIONS = `
     query GetMedications {
       medication_table {
@@ -231,6 +241,14 @@ export const MedicineTracker = () => {
     } else {
       setTimeInputs([]);
     }
+  };
+  
+  const handleCheckboxChange = (medNameInput: string, timeIndex: number) => {
+    const key = `${medNameInput}-${timeIndex}`;
+    setCheckboxState((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   // update timpe input
@@ -371,6 +389,8 @@ export const MedicineTracker = () => {
                         </div>
                         <input
                           type="checkbox"
+                          checked={checkboxState[`${medication.medication_name}-${i}`] || false}
+                          onChange={ () => handleCheckboxChange(medication.medication_name, i)}
                           className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-2 focus:ring-blue-300"
                         />
                       </div>
