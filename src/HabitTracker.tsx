@@ -52,9 +52,10 @@ type Habit = {
   habit_title: string;
   goal: number;
 };
-
+//The Url of Hasura API
 const hasuraGraphqlUrl = "https://elegant-kitten-75.hasura.app/v1/graphql";
 
+//Function to communicate with Hasura API
 async function graphqlFetch<TData>(
   query: string,
   variables?: Record<string, any>,
@@ -68,9 +69,9 @@ async function graphqlFetch<TData>(
     },
     body: JSON.stringify({ query, variables }),
   });
-
-const json = await res.json();
-
+  //Results are stored here
+  const json = await res.json();
+  //Errors are displayed if they occur
   if (json.errors) {
     console.error("Graphql errors:", json.errors);
     throw new Error(json.errors[0].message);
@@ -79,6 +80,7 @@ const json = await res.json();
 }
 
 const HabitTracker = () => {
+  //
   const [isOpen, setIsOpen] = useState(false);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(false);
