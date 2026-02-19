@@ -1,3 +1,4 @@
+//Import statements
 import { useState } from "react";
 import iconImage from "./icons/beat.png";
 import logoImage from "./icons/logo-transparent.png";
@@ -7,8 +8,12 @@ import { MedicineTracker } from "./MedicineTracker";
 import { Footer } from "./Footer";
 import "./index.css";
 
+//There are three states of the superapp
 export type ActiveApp = "habitTracker" | "medicineTracker" | "heartRateMonitor";
+
+//Creates a navigation menu
 function NavigationMenu({
+  //Specifies that the activeApp can be any of the three above and sets it to void initially
   activeApp,
   setActiveApp,
 }: {
@@ -16,7 +21,9 @@ function NavigationMenu({
   setActiveApp: (app: ActiveApp) => void;
 }) {
   return (
+    //A container around the buttons
     <div className="flex gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mt-6 mx-4 md:mx-6 lg:mx-8">
+      {/*Sets the active mini-app to the habit tracker on click */}
       <button
         onClick={() => setActiveApp("habitTracker")}
         className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
@@ -29,6 +36,7 @@ function NavigationMenu({
         Habit Tracker
       </button>
 
+      {/*Sets the active mini-app to the medicine tracker on click */}
       <button
         onClick={() => setActiveApp("medicineTracker")}
         className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
@@ -41,6 +49,7 @@ function NavigationMenu({
         Medication Tracker
       </button>
 
+      {/*Sets the active mini-app to the Heart rate monitor on click*/}
       <button
         onClick={() => setActiveApp("heartRateMonitor")}
         className={`flex-1 font-bold py-2 px-4 rounded-full transition-colors 
@@ -57,9 +66,11 @@ function NavigationMenu({
 }
 
 export const Header = () => {
+  //States the active mini-app. It sets the habit tracker as the active mini-app on render
   const [activeApp, setActiveApp] = useState<ActiveApp>("habitTracker");
 
   return (
+    //Main header with superapp title, slogan and navigation menu
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-100 to-blue-100 p-4">
       <div className="flex justify-between items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8">
         {/* Logo on the left */}
@@ -78,9 +89,11 @@ export const Header = () => {
             <p className="text-gray-600 text-lg">Your heart's best friend</p>
           </div>
         </div>
+        {/*Renders the navigation menu*/}
         <NavigationMenu activeApp={activeApp} setActiveApp={setActiveApp} />
       </div>
 
+      {/*Secondary header explaining the functionalities of the superapp */}
       <div className="flex gap-4 items-center p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
         <img
           src={iconImage}
@@ -98,16 +111,19 @@ export const Header = () => {
         </div>
       </div>
 
+      {/*Renders content based on the currently active mini-app*/}
       <main className="p-5 mx-4 md:mx-6 lg:mx-8 mt-4">
         {activeApp === "habitTracker" && <HabitTracker />}
         {activeApp === "medicineTracker" && <MedicineTracker />}
         {activeApp === "heartRateMonitor" && <HeartRateOverview />}
       </main>
 
+      {/*Renders Footer.tsx based on the currently active mini-app  */}
       <Footer activeApp={activeApp}/>
       
     </div>
   );
 };
 
+//Export the header so it can be used in App.tsx
 export default Header;

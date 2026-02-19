@@ -1,3 +1,4 @@
+//Import statements
 import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import "./index.css";
@@ -119,9 +120,7 @@ const HabitTracker = () => {
     }
   `;
 
-  {
-    /*Load habits */
-  }
+  {/*Load habits */}
   const loadHabits = async () => {
     setLoading(true);
     setError(null);
@@ -195,6 +194,7 @@ const HabitTracker = () => {
       <p className="text-gray-600">
         This is where you can track manage your habits.
       </p>
+      
       <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
         <h2 className="text-xl font-bold mb-4">Add new habit</h2>
         <div className="flex flex-col gap-3">
