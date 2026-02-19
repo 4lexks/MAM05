@@ -3,16 +3,19 @@ import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import "./index.css";
 
+//Specifies the properties of the portal
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
 };
 
+//Creates a portal that can open on top of the page
 function Portal({ isOpen, onClose, children }: ModalProps) {
   if (!isOpen) return null;
 
   return createPortal(
+    //Specifies style 
     <div
       style={{
         position: "fixed",
@@ -34,18 +37,22 @@ function Portal({ isOpen, onClose, children }: ModalProps) {
         }}
       >
         {children}
+        {/*Portal closes on click */}
         <button onClick={onClose}>Close</button>
       </div>
     </div>,
+    //??? 
     document.body,
   );
 }
 
+//Specifies the properties of a habit
 type Habit = {
   id: number;
   habit_title: string;
   goal: number;
 };
+
 const hasuraGraphqlUrl = "https://elegant-kitten-75.hasura.app/v1/graphql";
 
 async function graphqlFetch<TData>(
@@ -62,7 +69,7 @@ async function graphqlFetch<TData>(
     body: JSON.stringify({ query, variables }),
   });
 
-  const json = await res.json();
+const json = await res.json();
 
   if (json.errors) {
     console.error("Graphql errors:", json.errors);
@@ -194,7 +201,7 @@ const HabitTracker = () => {
       <p className="text-gray-600">
         This is where you can track manage your habits.
       </p>
-      
+
       <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
         <h2 className="text-xl font-bold mb-4">Add new habit</h2>
         <div className="flex flex-col gap-3">
