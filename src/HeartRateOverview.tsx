@@ -13,8 +13,7 @@ type HrRow = {
 
 //Specifies the data types of the heart rate variability data
 type HrvRow = {
-    hrv_value: number;
-    timestamp_16: string;
+    value: number;
     hour_timestamp: string;
 }
 
@@ -51,7 +50,7 @@ export const HeartRateOverview = () => {
         .catch((err) => console.error("CSV load error", err));
     
         //Fetches the heart rate variability data
-        fetch("/heart_rate_variability_hourly.csv")
+        fetch("/hrv_hourly.csv")
         .then((res) => res.text())
         .then((text) => {
             //Parses the text to a workable format for Typescript
@@ -62,11 +61,10 @@ export const HeartRateOverview = () => {
             });
             //Go through each row of data
             const rows: HrvRow[] = result.data
-                .filter((r:any) => r.hrv_value && r.hour_timestamp)
+                .filter((r:any) => r.value && r.hour_timestamp)
                 .map((r:any) => ({
                     //Transform hrv_value to integer, rest stays string
-                    hrv_value: Number(r.hrv_value),
-                    timestamp_16: r.timestamp_16,
+                    value: Number(r.value),
                     hour_timestamp: r.hour_timestamp,
                 }));
             //Saves the changed dataset
@@ -118,7 +116,7 @@ export const HeartRateOverview = () => {
             <YAxis />
             <Tooltip labelFormatter={(value) => formatTime(value as string)} />
             <Legend />
-            <Line type="monotone" dataKey="hrv_value" stroke="#8884d8" activeDot={{r:8}} />
+            <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{r:8}} />
             <RechartsDevtools />
             </LineChart>
         </ResponsiveContainer>
