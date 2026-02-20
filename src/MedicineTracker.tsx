@@ -1,7 +1,9 @@
+//Import statements
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import "./index.css";
 
+//represents a medication entry in the database
 type Medicine = {
   medication_name: string;
   dose_amount: number;
@@ -9,6 +11,8 @@ type Medicine = {
   amount_per_day: number;
   time_to_take: string[];
 };
+
+//the URL of the Hasura GraphQL API
 const hasuraGraphqlUrl = "https://elegant-kitten-75.hasura.app/v1/graphql";
 
 async function graphqlFetch<TData>(
@@ -34,8 +38,21 @@ async function graphqlFetch<TData>(
   return json.data;
 }
 
+/**
+ * regex to extract name, form, dose amount and unit from productnaam
+ *  example: "Kruidvat Cetirizine diHCl 10 mg Allergietabletten, filmomhulde tabletten"
+ * - name: Kruidvat Cetirizine diHCl
+ * - dose amount: 10
+ * - unit: mg
+ * - form: Allergietabletten, filmomhulde tabletten
+ * We assume the format is always: [name] [dose amount] [dose unit], [form]
+ */
 const PRODUCTNAAM_REGEX= /^(.+?)\s+(\d+)\s*(mg|g|mcg|µg|ml|IU)\b,?\s*(.+)$/;
 
+/**
+ * Parses the productnaam to extract medication name, dose amount, dose unit and form.
+ * Returns null if the format is unexpected.
+ */
 function parseMedicationName(productnaam: string) {
   const match = productnaam.match(PRODUCTNAAM_REGEX);
   if (!match) return null;
@@ -47,6 +64,12 @@ function parseMedicationName(productnaam: string) {
   }
 }
 
+/**
+ * Returns a label for the time of day based on the hour in the time string.
+ * - Morning: 5:00 - 11:59
+ * - Afternoon: 12:00 - 16:59 ..etc
+ * If the time format is unexpected, returns a default message.
+ */
 function getTimeLabel(time: string) {
   let hour: number;
   const simpleMatch = time.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/);
@@ -62,6 +85,10 @@ function getTimeLabel(time: string) {
   return "Night";
 }
 
+/**
+ * Formats a time string to ensure it is in HH:mm format, removing seconds if present.
+ * For cleaner display
+ */
 function formatTime(timeStr: string): string {
   const match = timeStr.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/);
   if (!match) return timeStr; // Return original if format is unexpected
@@ -76,6 +103,11 @@ type ModalProps = {
   children: React.ReactNode;
 };
 
+/**
+ * A modal popup that appears centered on screen with a dark overlay.
+ * Uses createPortal to render outside the normal component tree,
+ * so it always displays on top of everything else.
+ */
 function Portal({ isOpen, onClose, children }: ModalProps) {
   if (!isOpen) return null;
   return createPortal(
@@ -109,25 +141,31 @@ function Portal({ isOpen, onClose, children }: ModalProps) {
 }
 
 export const MedicineTracker = () => {
+  //state variables
   const [medications, setMedications] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Controls the "Add Medication" modal
 
+  //form inputs for adding new medication
   const [medNameInput, setMedNameInput] = useState("");
   const [amountPerDayInput, setAmountPerDayInput] = useState("");
-  const [timeInputs, setTimeInputs] = useState<string[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [timeInputs, setTimeInputs] = useState<string[]>([]); // dynamic array of time inputs based on amountPerDayInput
+  const [suggestions, setSuggestions] = useState<any[]>([]); // autocomplete suggestions from medicine_db query
   const [selectedMedInfo, setSelectedMedInfo] = useState<{ farmaceutischevorm: string ; toedienningsweg: string} | null>(null);
 
+  // extracted dose info from productnaam using regex
   const [extractDose, setExtractedDose] = useState<{doseAmount: number; doseUnit: string} | null>(null);
 
-  // checkbox state (saved on localStorage)
+  // tracks medication intake checkboxes, key is `${medication_name}-${timeIndex}`--> boolean. 
+  // We persist this in localStorage so it remains checked even after page refresh. 
+  // This is a simple way to track if the user has taken their medication for each scheduled time.
   const [checkboxState, setCheckboxState] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem("checkboxState");
     return saved ? JSON.parse(saved) : {};
   });
 
+  // Whenever checkboxState changes, saves it to localStorage
   useEffect(() => {
     localStorage.setItem("checkboxState", JSON.stringify(checkboxState));
   }, [checkboxState]);
@@ -174,7 +212,12 @@ export const MedicineTracker = () => {
     }
   }
   `;
-
+  /**
+   * Searches the Geneesmiddeleninformatiebank (medicine_db)
+   * for medicines matching the user's input. Uses _ilike for
+   * case-insensitive partial matching. Limited to 5 results for
+   * the autocomplete dropdown.
+   */
   const SEARCH_MEDICATION_DB = `
     query SearchMedication($search: String!) {
       medicine_db(where: {productnaam: { _ilike: $search }}
@@ -187,9 +230,7 @@ export const MedicineTracker = () => {
     }
   `;
 
-  {
-    /*Load Medications */
-  }
+    // Loads all medications from the database and updates state 
   const loadMedications = async () => {
     setLoading(true);
     setError(null);
@@ -212,7 +253,11 @@ export const MedicineTracker = () => {
     loadMedications();
   }, []);
 
-  // we can also filter it on time if yes check UvA AI chat!!
+  /** 
+  * search medication_db for suggestions based on user input. 
+  * Only triggers if input length >= 3 to avoid excessive queries. 
+  * Results are shown in autocomplete dropdown.
+  */
   const searchMedication = async (search: string) => {
     if (search.length < 3) { 
       setSuggestions([]);
@@ -228,7 +273,11 @@ export const MedicineTracker = () => {
       setSuggestions([]);
     }
   }
-
+  /** 
+  * When the user changes the "amount per day" input, we update the timeInputs array to have the same number of entries.
+  * This allows us to dynamically show the correct number of time input fields for the user to specify when they take their medication.
+  * If the input is invalid (not a number between 1 and 10), we reset the timeInputs to an empty array.
+  */
   const handleAmountPerDayChange = (value: string) => {
     setAmountPerDayInput(value);
     const amount = parseInt(value, 10);
@@ -242,6 +291,19 @@ export const MedicineTracker = () => {
     }
   };
   
+  /** 
+  * When the user checks or unchecks a medication intake checkbox, we update the checkboxState with a key that combines the medication name and time index.
+  * key format ensures each medication + time slot combo is uniqye. The value is toggled between true and false.
+  * This allows us to track which specific dose of which medication has been marked as taken.
+  * Example: If "Metoprolol 50 mg" has 2 doses, the keys would be:
+  *   "Metoprolol 50 mg-0" (first dose)
+  *   "Metoprolol 50 mg-1" (second dose)
+  * How the toggle works:
+  *   - ...prev spreads (copies) all existing checkbox states into the new object
+  *   - [key]: !prev[key] flips the value for just this specific dose
+  *   - If prev[key] is undefined (first click), !undefined = true → checkbox becomes checked
+  *   - If prev[key] is true, !true = false → checkbox becomes unchecked
+  */
   const handleCheckboxChange = (medNameInput: string, timeIndex: number) => {
     const key = `${medNameInput}-${timeIndex}`;
     setCheckboxState((prev) => ({
@@ -250,21 +312,34 @@ export const MedicineTracker = () => {
     }));
   };
 
-  // update timpe input
+  /**
+  * update timpe input fields when user changes the time for a specific dose. 
+  * We create a new array with the updated time value at the correct index, and set it to state. 
+  * This ensures the correct times are saved when creating the medication entry.
+  */
   const handleTimeChange = (index: number, value: string) => {
     const updated = [...timeInputs];
     updated[index] = value;
     setTimeInputs(updated);
   }
 
+  /**
+   * Submits the new medication to the database.
+   * Validates that all required fields are filled before sending.
+   * Appends ":00" to time strings since the HTML time input gives "HH:MM"
+   * but Hasura expects "HH:MM:SS" format.
+   * Resets the form and reloads the medication list on success.
+   */
   const createMedication = async () => {
+    // Basic validation to ensure all fields are filled
     if (!medNameInput|| !amountPerDayInput || !extractDose) return;
     const allTimeInputsFilled = timeInputs.length > 0 && timeInputs.every((t) => t !== "");
     if (!allTimeInputsFilled) return;
 
+    // all time slots must be filled
     const amount_per_day = parseInt(amountPerDayInput, 10);
 
-    //format time hh:mm:ss
+    // Convert time inputs to "HH:MM:SS" format expected by Hasura
     const time_to_take = timeInputs.map((t) => {
       return t.length === 5 ? `${t}:00` : t; // add seconds if not provided
     });
@@ -280,7 +355,7 @@ export const MedicineTracker = () => {
           time_to_take: time_to_take, 
         },
       );
-      // reset all fields
+      // reset all fields after successful creation
       setMedNameInput("");
       setAmountPerDayInput("");
       setTimeInputs([]);
@@ -293,8 +368,8 @@ export const MedicineTracker = () => {
       alert(e.message ?? "Failed to create medication");
     }
   };
-
-
+    
+  /** deletes a medication by name and refreshes the list.*/
   const deleteMedication = async (medication_name: string) => {
     setLoading(true);
     setError(null);
@@ -309,7 +384,13 @@ export const MedicineTracker = () => {
     }
   };
 
-  //handle selecting a suggestion from autocomplete
+    /**
+   * Handles selecting a medicine from the autocomplete dropdown.
+   * - Sets the input field to the full product name
+   * - Stores the pharmaceutical form & administration route for display
+   * - Attempts to auto-extract the dosage via regex from the product name
+   * - Clears the suggestion list
+   */
   const handleSelectSuggestion = (med: any) => {
     setMedNameInput(med.productnaam);
     setSelectedMedInfo({
@@ -318,11 +399,12 @@ export const MedicineTracker = () => {
     });
     setSuggestions([]);
 
-    //use regex to extract dose from productnaam
+    // Try to extract dose from the product name using regex 
     const extracted = parseMedicationName(med.productnaam);
     if (extracted) {
       setExtractedDose({ doseAmount: extracted.doseAmount, doseUnit: extracted.doseUnit });
     } else {
+      //regex failed to extract dose is set to null
       setExtractedDose(null);
     }
   };
@@ -344,6 +426,7 @@ export const MedicineTracker = () => {
       </p>
           
         <div className="flex flex-col mt-2 w-full">
+          {/* medication list */}
           {loading && <p>Loading medications...</p>}
           {error && <p className="text-red-500">Error: {error}</p>}
 
@@ -353,7 +436,7 @@ export const MedicineTracker = () => {
                 key={medication.medication_name}
                 className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm"
               >
-                {/*header: name and doasge + remove button */}
+                {/*header: medication name  + remove button */}
                 <div className=" flex items-center w-full">
                   <p className="flex-1 text-xl font-semibold">
                     {medication.medication_name}
@@ -366,13 +449,13 @@ export const MedicineTracker = () => {
                   </button>
                 </div>
 
-                {/* dosage info extracted by regexp*/}
+                {/* dosage summary  extracted by regexp from productname*/}
                 <p className="text-sm text-gray-500">
                   {medication.dose_amount} {medication.dose_unit} {medication.amount_per_day}x per day
                 </p>
                 
-                {/* time of intake per row */}
-                <p className="text-lg font -medium"> Today&apos;s Schedule</p>
+                {/* schedule: one row per time to take with checkbox */}
+                <p className="text-lg font-medium"> Today&apos;s Schedule</p>
                 <div className="flex flex-col gap-2">
                   {Array.isArray(medication.time_to_take) &&
                     medication.time_to_take.map((time, i) => (
@@ -403,7 +486,7 @@ export const MedicineTracker = () => {
           </div>
       </div>
 
-      {/* ─── Add Medication Modal ─── */}
+      {/* Add Medication Modal */}
         <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
           <h2 className="text-xl font-bold mb-4">Add new medication</h2>
           <div className="flex flex-col gap-3">
@@ -418,12 +501,13 @@ export const MedicineTracker = () => {
                 value={medNameInput}
                 onChange={(e) => {
                   setMedNameInput(e.target.value);
-                  searchMedication(e.target.value);
-                  setSelectedMedInfo(null);
+                  searchMedication(e.target.value); //trigger autocomplete search on input
+                  setSelectedMedInfo(null); // reset selected info on new input
                   setExtractedDose(null);
                 }}
                 className="border rounded px-3 py-2 w-full"
               />
+              {/* autocomplete dropdown */}
               {suggestions.length > 0 && (
                 <ul className="absolute bg-white border rounded w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-lg">
                   {suggestions.map((med, i) => (
@@ -462,7 +546,7 @@ export const MedicineTracker = () => {
               </div>
             )}
 
-            {/* Times per day */}
+            {/*Frequency input: determines how many time slots to show * */}
             <label className="text-sm font-medium text-gray-700">
               How many times per day?
             </label>
@@ -476,7 +560,7 @@ export const MedicineTracker = () => {
               className="border rounded px-3 py-2"
             />
 
-            {/* Dynamic time inputs — one per dose */}
+            {/* Dynamic time inputs, one per daily dose, generated based on frequency */}
             {timeInputs.length > 0 && (
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
@@ -503,6 +587,7 @@ export const MedicineTracker = () => {
               </div>
             )}
 
+            {/* Submit button: disabled until all required fields are filled */}
             <button
               onClick={createMedication}
               disabled={
