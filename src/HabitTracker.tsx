@@ -215,7 +215,7 @@ const HabitTracker = () => {
         This is where you can track manage your habits.
       </p>
 
-      7{/*Portal popup for creating a new habit */}
+      {/*Portal popup for creating a new habit */}
       <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
         <h2 className="text-xl font-bold mb-4">Add new habit</h2>
         <div className="flex flex-col gap-3">
