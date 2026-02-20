@@ -80,6 +80,7 @@ export const HeartRateOverview = () => {
         <p className="text-gray-600"> This is where you can view your recent heart rate and heart rate variability.</p>
     
         {/*Displays the heart rate graph*/}
+        <h1 className="text-xl font-semi-bold mb-4">title</h1>
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={hrData}
