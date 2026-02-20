@@ -41,7 +41,7 @@ function Portal({ isOpen, onClose, children }: ModalProps) {
         <button onClick={onClose}>Close</button>
       </div>
     </div>,
-    //??? 
+    //Portal is rendered on the body of the document 
     document.body,
   );
 }
@@ -80,7 +80,7 @@ async function graphqlFetch<TData>(
 }
 
 const HabitTracker = () => {
-  //
+  // state variables for portal vidibility, habits list, loading state, error message, form inputs
   const [isOpen, setIsOpen] = useState(false);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -88,16 +88,18 @@ const HabitTracker = () => {
   const [habitTitle, setHabitTitle] = useState("");
   const [goalInput, setGoalInput] = useState("");
 
-  // checkbox state (saved on localStorage)
+  // checkbox states (saved on localStorage)
   const [checkboxState, setCheckboxState] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem("checkboxState");
     return saved ? JSON.parse(saved) : {};
   });
 
+  //Save checkbox states to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("checkboxState", JSON.stringify(checkboxState));
   }, [checkboxState]);
 
+  //GraphQl query to fetch all habits from the database
   const GET_HABITS = `
     query GetHabits {
       habit_table {
@@ -108,6 +110,7 @@ const HabitTracker = () => {
     }
   `;
 
+  //GraphQl mutation to insert a new habit into the database
   const INSERT_HABIT = `
     mutation InsertHabit($habit_title: String!, $goal: Int!) {
       insert_habit_table_one(object: {
@@ -121,6 +124,7 @@ const HabitTracker = () => {
     }
   `;
 
+  //GraphQl mutation to delete a habit from the database by its id
   const DELETE_HABIT = `
     mutation DeleteHabit($id: Int!) {
       delete_habit_table_by_pk(id: $id) {
@@ -129,13 +133,14 @@ const HabitTracker = () => {
     }
   `;
 
-  {/*Load habits */}
+  //Fetches habits from the database and updates the state
   const loadHabits = async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await graphqlFetch<{ habit_table: Habit[] }>(GET_HABITS);
       console.log("Graphql habits data:", data);
+      // Ensure that it's an array
       setHabits(Array.isArray(data.habit_table) ? data.habit_table : []);
     } catch (e: any) {
       setError(e.message ?? "Failed to load habits");
@@ -148,6 +153,7 @@ const HabitTracker = () => {
     loadHabits();
   }, []);
 
+  //Creates a new habit in the database using the form inputs
   const createHabit = async () => {
     if (!habitTitle || !goalInput) return;
       const goal = parseInt(goalInput, 10);
@@ -161,9 +167,11 @@ const HabitTracker = () => {
         habit_title: habitTitle,
         goal,
       });
+      // Clear form and close portal after successful creation
       setHabitTitle("");
       setGoalInput("");
       setIsOpen(false);
+      // Reload habits to show the new one
       await loadHabits();
     }
     catch (e: any) {
@@ -185,6 +193,8 @@ const HabitTracker = () => {
     }
   };
 
+  //Toggles a specific checkbox by building a unique key from the habit id and day index (example: "3-2" = habit 3 (habitId), Wednesday).
+  //It then copies the existing state and flips only that checkbox from checked to unchecked or vice versa.
   const handleCheckboxChange = (habitId: number, timeIndex: number) => {
     const key = `${habitId}-${timeIndex}`;
     setCheckboxState((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -192,6 +202,7 @@ const HabitTracker = () => {
 
   return (
     <><div className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
+        {/* Header with title and add button */}
         <div className="flex justify-between gap-4 items-center">
           <h1 className="text-2xl font-bold">Habit Tracker</h1>
           <div className="flex gap-2">
@@ -204,6 +215,7 @@ const HabitTracker = () => {
         This is where you can track manage your habits.
       </p>
 
+      7{/*Portal popup for creating a new habit */}
       <Portal isOpen={isOpen} onClose={() => setIsOpen(false)}>
         <h2 className="text-xl font-bold mb-4">Add new habit</h2>
         <div className="flex flex-col gap-3">
@@ -229,12 +241,14 @@ const HabitTracker = () => {
           </button>
         </div>
       </Portal>
-    
+    {/* Habit list section */}
     <div className="flex flex-col mt-2 w-full">
+      {/* show laoding and error states */}
         {loading && <p>Loading habits...</p>}
         {error && <p className="text-red-500">Error: {error}</p>}
 
         <ul className="list-disc pl-5 space-y-4">
+          {/* loop through each habit and display a card */}
           {habits.map((habit) => (
             <div key={habit.id} className="flex flex-col items-center gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
               <div className="flex items-start w-full">
@@ -245,7 +259,7 @@ const HabitTracker = () => {
                 <button onClick={() => deleteHabit(habit.id)} className="px-3 py-1 bg-red-500 text-white rounded font-semibold hover:bg-red-600">Remove</button>
               </div>
               
-
+              {/* weekly checkbox table for tracking progress */}
               <div className="table w-2xl mt-2">
                 <div className="table-header-group">
                   <div className="table-row">
@@ -254,6 +268,7 @@ const HabitTracker = () => {
                     ))}
                   </div>
                 </div>
+                {/* checkbox row, one per day of the week */}
                 <div className="table-row-group">
                   <div className="table-row">
                     {[0,1,2,3,4,5,6].map((dayIndex) => (
@@ -271,6 +286,7 @@ const HabitTracker = () => {
               </div>
           </div>
           ))}
+          {/* show message if no habits exist */}
           {!loading && habits.length === 0 && !error && (
             <li className="text-gray-500">No habits yet.</li>
           )}
