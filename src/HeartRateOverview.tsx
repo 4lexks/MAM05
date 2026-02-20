@@ -80,6 +80,8 @@ export const HeartRateOverview = () => {
         <p className="text-gray-600"> This is where you can view your recent heart rate and heart rate variability.</p>
     
         {/*Displays the heart rate graph*/}
+        <h1 className="text-xl font-bold mb-4 text-red-500 text-center">Heart rate</h1> 
+{/* need to center the title */}
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={hrData}
@@ -95,12 +97,13 @@ export const HeartRateOverview = () => {
             <YAxis />
             <Tooltip labelFormatter={(value) => formatTime(value as string)} />
             <Legend />
-            <Line type="monotone" dataKey="heart_rate" stroke="#8884d8" activeDot={{r:8}} />
+            <Line name="Heart rate" type="monotone" dataKey="heart_rate" stroke="#8884d8" activeDot={{r:8}} />
             <RechartsDevtools />
             </LineChart>
         </ResponsiveContainer>
 
         {/*Displays the heart rate variability graph */}
+        <h1 className="text-xl font-bold mb-4 text-red-500 text-center">Heart rate variability</h1>
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={hrvData}
@@ -116,7 +119,7 @@ export const HeartRateOverview = () => {
             <YAxis />
             <Tooltip labelFormatter={(value) => formatTime(value as string)} />
             <Legend />
-            <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{r:8}} />
+            <Line name="Heart Rate variability" type="monotone" dataKey="value" stroke="#8884d8" activeDot={{r:8}} />
             <RechartsDevtools />
             </LineChart>
         </ResponsiveContainer>
