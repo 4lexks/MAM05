@@ -80,7 +80,7 @@ export const HeartRateOverview = () => {
         <p className="text-gray-600"> This is where you can view your recent heart rate and heart rate variability.</p>
     
         {/*Displays the heart rate graph*/}
-        <h1 className="text-xl font-bold mb-4 text-red-500 text-center">Heart rate</h1> 
+        <h1 className="text-xl font-bold mb-4 text-black text-center">Heart rate</h1> 
 {/* need to center the title */}
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
@@ -103,7 +103,7 @@ export const HeartRateOverview = () => {
         </ResponsiveContainer>
 
         {/*Displays the heart rate variability graph */}
-        <h1 className="text-xl font-bold mb-4 text-red-500 text-center">Heart rate variability</h1>
+        <h1 className="text-xl font-bold mb-4 text-black text-center">Heart rate variability</h1>
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={hrvData}
