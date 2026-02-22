@@ -1,7 +1,7 @@
 //Import statements
 import { ReactNode, useEffect, useState } from "react";
 import Papa from "papaparse";
-import { LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, ResponsiveContainer, Label } from 'recharts';
 import { RechartsDevtools } from '@recharts/devtools';
 
 //Specifies the data types of heart rate data
@@ -77,7 +77,7 @@ export const HeartRateOverview = () => {
     return(
     <div className="flex flex-col gap-4 p-5 bg-white border-2 border-blue-200 rounded-2xl shadow-sm mx-4 md:mx-6 lg:mx-8 mt-4">
         <h1 className="text-2xl font-bold mb-4">Heart Rate Overview</h1>
-        <p className="text-gray-600"> This is where you can view your recent heart rate and heart rate variability.</p>
+        <p className="text-gray-600"> This is where you can view today's heart rate and heart rate variability.</p>
     
         {/*Displays the heart rate graph*/}
         <h1 className="text-xl font-bold mb-4 text-black text-center">Heart rate</h1> 
@@ -85,18 +85,12 @@ export const HeartRateOverview = () => {
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={hrData}
-                margin={{
-                top: 5,
-                right: 0,
-                left: 0,
-                bottom: 5,
-                }}
+                margin={{ top: 5, right: 30, left: 30, bottom: 50,}}
             >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hour_timestamp"  tickFormatter={(value) => formatTime(value as string)} />
-            <YAxis />
+            <XAxis dataKey="hour_timestamp"  tickFormatter={(value) => formatTime(value as string)} label={{value:"Time", position:"insideBottom", offset:-10, textAnchor:"middle" }}/>
+            <YAxis label={{value:"Heart rate (beats per minute)", position:"insideLeft", textAnchor:"middle", angle:-90 }}/>
             <Tooltip labelFormatter={(value) => formatTime(value as string)} />
-            <Legend />
             <Line name="Heart rate" type="monotone" dataKey="heart_rate" stroke="#8884d8" activeDot={{r:8}} />
             <RechartsDevtools />
             </LineChart>
@@ -107,18 +101,12 @@ export const HeartRateOverview = () => {
         <ResponsiveContainer width="100%" height={300}>
             <LineChart
                 data={hrvData}
-                margin={{
-                top: 5,
-                right: 0,
-                left: 0,
-                bottom: 5,
-                }}
+                margin={{ top: 5, right: 30, left: 30, bottom: 50}}
             >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hour_timestamp"  tickFormatter={(value) => formatTime(value as string)} />
-            <YAxis />
+            <XAxis dataKey="hour_timestamp"  tickFormatter={(value) => formatTime(value as string)} label={{value:"Time", position:"insideBottom", offset:-10, textAnchor:"middle" }}/ >
+            <YAxis label={{value:"Heart rate variability (ms)", position:"insideLeft", textAnchor:"middle", angle:-90 }}/>
             <Tooltip labelFormatter={(value) => formatTime(value as string)} />
-            <Legend />
             <Line name="Heart Rate variability" type="monotone" dataKey="value" stroke="#8884d8" activeDot={{r:8}} />
             <RechartsDevtools />
             </LineChart>
